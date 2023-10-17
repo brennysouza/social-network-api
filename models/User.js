@@ -11,7 +11,10 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true,
     unique: true,
-    match: [/\S+@\S+\.\S+/, 'is invalid'],
+    validate: {
+      validator: (value) => /\S+@\S+\.\S+/.test(value),
+      message: 'Email is invalid',
+    },
   },
   thoughts: [
     {
