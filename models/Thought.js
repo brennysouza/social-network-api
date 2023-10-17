@@ -74,5 +74,7 @@ thoughtSchema.virtual('reactionCount')
     });
 
 const Thought = mongoose.model('thought', thoughtSchema);
+const Reaction = mongoose.model('Reaction', reactionSchema);
 
+module.exports = Reaction;
 module.exports = Thought;
