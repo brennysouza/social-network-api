@@ -1,123 +1,118 @@
-const { User, Thought } = require("../models");
-const Reaction = require('../models/Reaction');
-const { db } = require("../models/User");
-const { db } = require("../models/Thought");
-const { db } = require("../models/Reaction");
-const { db } = require("../models");
+const { Thought, User } = require('../models');
 
 const thoughtController = {
+
   getAllThoughts(req, res) {
     Thought.find({})
-      .populate({
-        path: "reactions",
-        select: "-__v",
-      })
-      .select("-__v")
-      .then((dbThoughtData) => res.json(dbThoughtData))
-      .catch((err) => {
-        console.log(err);
-        res.status(500).json(err);
-      });
-    }
+      .then((thoughts) => res.json(thoughts))
+      .catch((err) => res.status(400).json(err));
   },
 
-    getThoughtById({ params }, res) {
-        Thought.findOne({ _id: params.id })
-        .then((dbThoughtData) => {
-            if (!dbThoughtData) {
-            res.status(404).json({ message: "Thought ID not found." });
-            return;
-            }
-            res.json(dbThoughtData);
-        })
-        .catch((err) => {
-            console.log(err);
-            res.status(400).json(err);
-        });
-    },
+  getThoughtById(req, res) {
+    const { thoughtId } = req.params;
+    Thought.findById(thoughtId)
+      .then((thought) => res.json(thought))
+      .catch((err) => res.status(400).json(err));
+  },
 
-    createThought({ body }, res) {
-      Thought.create(body)
-          .then((dbThoughtData) => {
-              return User.findOneAndUpdate(
-                  { _id: body.userId },
-                  { $push: { thoughts: dbThoughtData._id } },
-                  { new: true }
-              );
-          })
-          .then((dbUserData) => {
-              if (!dbUserData) {
-                  res.status(404).json({ message: "User ID not found." });
-              } else {
-                  res.json(dbUserData);
-              }
-          })
-          .catch((thoughtErr) => {
-              console.log(thoughtErr);
-              res.status(400).json(thoughtErr);
-          });
-  }
-  
-
-    updateThought({ params, body }, res) {
-      Thought.findOneAndUpdate({ _id: params.thoughtId }, body, {
-        new: true,
-        runValidators: true,
+  createThought(req, res) {
+    const { thoughtText, username, userId } = req.body;
+    Thought.create({ thoughtText, username, userId })
+      .then((thought) => {
+        return User.findByIdAndUpdate(
+          userId,
+          { $push: { thoughts: thought._id } },
+          { new: true }
+        );
       })
-        .then((dbThoughtData) => {
-          if (!dbThoughtData) {
-            res.status(404).json({ message: "Thought ID not found." });
-            return;
-          }
-          res.json(dbThoughtData);
-        })
-        .catch((err) => res.status(400).json(err));
-      },
+      .then((user) => res.json(user))
+      .catch((err) => res.status(400).json(err));
+  },
 
-    deleteThought({ params }, res) {
-      Thought.findOneAndDelete({ _id: params.thoughtId })
-          .then((dbThoughtData) => {
-              if (!dbThoughtData) {
-                  res.status(404).json({ message: "Thought ID not found." });
-                  return;
-              }
-              res.json(dbThoughtData);
-          })
-          .catch((err) => res.status(400).json(err));
-  }
+  updateThought(req, res) {
+    const { thoughtId } = req.params;
+    const { thoughtText } = req.body;
+    Thought.findByIdAndUpdate(
+      thoughtId,
+      { thoughtText },
+      { new: true, runValidators: true }
+    )
+      .then((thought) => res.json(thought))
+      .catch((err) => res.status(400).json(err));
+  },
 
-    addReaction({ params, body }, res) {
-      Reaction.create(body)
-        .then((dbReactionData) => {
-          return Thought.findOneAndUpdate(
-            { _id: params.thoughtId },
-            { $push: { reactions: dbReactionData._id } },
-            { new: true }
-          );
-        })
-        .then((dbThoughtData) => {
-          if (!dbThoughtData) {
-            res.status(404).json({ message: "Thought ID not found." });
-            return;
-          }
-          res.json(dbThoughtData);
-        })
-        .catch((err) => res.json(err));
-    },
+  deleteThought(req, res) {
+    const { thoughtId } = req.params;
+    Thought.findByIdAndDelete(thoughtId)
+      .then((thought) => {
+        return User.findByIdAndUpdate(
+          thought.userId,
+          { $pull: { thoughts: thought._id } },
+          { new: true }
+        );
+      })
+      .then((user) => res.json(user))
+      .catch((err) => res.status(400).json(err));
+  },
 
-    deleteReaction({ params }, res) {
-      Reaction.findOneAndDelete({ _id: params.reactionId })
-        .then((dbReactionData) => {
-          if (!dbReactionData) {
-            res.status(404).json({ message: "Reaction ID not found." });
-            return;
-          }
-          res.json(dbReactionData);
-        })
-        .catch((err) => res.json(err));
-    }
-    
+createReaction(req, res) {
+  const { thoughtId } = req.params;
+  const { reactionBody, username } = req.body;
 
+  const reactionData = {
+    reactionBody,
+    username,
+  };
+
+  Reaction.create(reactionData)
+    .then((newReaction) => {
+      return Thought.findByIdAndUpdate(
+        thoughtId,
+        { $push: { reactions: newReaction._id } },
+        { new: true }
+      );
+    })
+    .then((updatedThought) => {
+      res.json(updatedThought);
+    })
+    .catch((err) => {
+      console.log(err);
+      res.status(400).json(err);
+    });
+},
+
+
+deleteReaction(req, res) {
+  const { thoughtId, reactionId } = req.params;
+
+  Thought.findById(thoughtId)
+    .then((thought) => {
+      if (!thought) {
+        res.status(404).json({ message: 'Thought not found.' });
+        return;
+      }
+
+      const reactionIndex = thought.reactions.findIndex(
+        (reaction) => reaction._id.toString() === reactionId
+      );
+
+      if (reactionIndex === -1) {
+        res.status(404).json({ message: 'Reaction not found in thought.' });
+        return;
+      }
+
+      thought.reactions.splice(reactionIndex, 1);
+
+      return thought.save();
+    })
+    .then((updatedThought) => {
+      res.json(updatedThought);
+    })
+    .catch((err) => {
+      console.log(err);
+      res.status(400).json(err);
+    });
+},
+};
 
 module.exports = thoughtController;
-
