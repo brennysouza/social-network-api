@@ -3,20 +3,28 @@ const { User } = require('../models');
 const userController = {
   getAllUsers(req, res) {
     User.find({})
-      .populate('thoughts')
-      .populate('friends')
+      .select('-__v')
       .then((users) => res.json(users))
       .catch((err) => res.status(400).json(err));
   },
 
 
-  getUserById(req, res) {
-    const { userId } = req.params;
-    User.findById(userId)
-      .populate('thoughts')
-      .populate('friends')
-      .then((user) => res.json(user))
-      .catch((err) => res.status(400).json(err));
+  async getUserById(req, res) {
+    try {
+      const dbUserData = await User.findOne({ _id: req.params.userId })
+        .select('-__v')
+        .populate('thoughts')
+        .populate('friends');
+
+      if (!dbUserData) {
+        res.status(404).json({ message: 'No user found with this id!' });
+        return;
+      }
+      res.json(dbUserData);
+    } catch (err) {
+      console.log(err);
+      res.status(500).json(err);
+    }
   },
 
 
@@ -40,7 +48,7 @@ const userController = {
       .catch((err) => res.status(400).json(err));
   },
 
-  
+
   deleteUser(req, res) {
     const { userId } = req.params;
     User.findByIdAndDelete(userId)
