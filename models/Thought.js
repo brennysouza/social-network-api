@@ -1,4 +1,6 @@
+const mongoose = require('mongoose');
 const { Schema, Types } = mongoose;
+
 
 // THis code below is the reaction schema
 const reactionSchema = new Schema({
