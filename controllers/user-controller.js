@@ -27,13 +27,22 @@ const userController = {
     }
   },
 
+createUser(req, res) {
+  const { username, email } = req.body;
+  User.create({ username, email })
+    .then((user) => res.status(201).json(user)) // Return 201 for successful creation.
+    .catch((err) => {
+      console.error(err);
+      res.status(400).json(err);
+    });
+},
 
-  createUser(req, res) {
-    const { username, email } = req.body;
-    User.create({ username, email })
-      .then((user) => res.json(user))
-      .catch((err) => res.status(400).json(err));
-  },
+  // createUser(req, res) {
+  //   const { username, email } = req.body;
+  //   User.create({ username, email })
+  //     .then((user) => res.json(user))
+  //     .catch((err) => res.status(400).json(err));
+  // },
 
 
   updateUser(req, res) {

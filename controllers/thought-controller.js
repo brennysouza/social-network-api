@@ -1,19 +1,26 @@
-const { Thought, User } = require('../models');
+const { Thought, User, Reaction } = require('../models');
 
 const thoughtController = {
 
   getAllThoughts(req, res) {
     Thought.find({})
-      .then((thoughts) => res.json(thoughts))
-      .catch((err) => res.status(400).json(err));
+    .then((thoughts) => res.json(thoughts))
+    .catch((err) => res.status(400).json(err));
   },
-
+  // .select('-__v')
+  
   getThoughtById(req, res) {
     const { thoughtId } = req.params;
-    Thought.findById(thoughtId)
-      .then((thought) => res.json(thought))
+    Thought.findOne({ _id: thoughtId })
+      .then((thought) => {
+        if (!thought) {
+          return res.status(404).json({ message: 'Thought not found' });
+        }
+        res.json(thought);
+      })
       .catch((err) => res.status(400).json(err));
   },
+  
 
   createThought(req, res) {
     const { thoughtText, username, userId } = req.body;
