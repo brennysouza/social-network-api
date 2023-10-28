@@ -4,11 +4,11 @@ const thoughtController = {
 
   getAllThoughts(req, res) {
     Thought.find({})
-    .then((thoughts) => res.json(thoughts))
-    .catch((err) => res.status(400).json(err));
+      .then((thoughts) => res.json(thoughts))
+      .catch((err) => res.status(400).json(err));
   },
   // .select('-__v')
-  
+
   getThoughtById(req, res) {
     const { thoughtId } = req.params;
     Thought.findOne({ _id: thoughtId })
@@ -20,7 +20,7 @@ const thoughtController = {
       })
       .catch((err) => res.status(400).json(err));
   },
-  
+
 
   createThought(req, res) {
     const { thoughtText, username, userId } = req.body;
@@ -62,64 +62,63 @@ const thoughtController = {
       .catch((err) => res.status(400).json(err));
   },
 
-createReaction(req, res) {
-  const { thoughtId } = req.params;
-  const { reactionBody, username } = req.body;
+  createReaction(req, res) {
+    const { thoughtId } = req.params;
+    const { reactionBody, username } = req.body;
 
-  const reactionData = {
-    reactionBody,
-    username,
-  };
+    const reactionData = {
+      reactionBody,
+      username,
+    };
 
-  Reaction.create(reactionData)
-    .then((newReaction) => {
-      return Thought.findByIdAndUpdate(
-        thoughtId,
-        { $push: { reactions: newReaction._id } },
-        { new: true }
-      );
-    })
-    .then((updatedThought) => {
-      res.json(updatedThought);
-    })
-    .catch((err) => {
-      console.log(err);
-      res.status(400).json(err);
-    });
-},
+    const filter = { _id: thoughtId };
+
+    Thought.findOneAndUpdate(
+      filter,
+      { $push: { reactions: reactionData } },
+      { runValidators: true, new: true },
+    )
+      .then((updatedThought) => {
+        res.json(updatedThought);
+      })
+      .catch((err) => {
+        console.log(err);
+        res.status(400).json(err);
+      });
+  },
 
 
-deleteReaction(req, res) {
-  const { thoughtId, reactionId } = req.params;
+  deleteReaction(req, res) {
+    const { thoughtId, reactionId } = req.params;
 
-  Thought.findById(thoughtId)
-    .then((thought) => {
-      if (!thought) {
-        res.status(404).json({ message: 'Thought not found.' });
-        return;
-      }
+    Thought.findById(thoughtId)
+      .then((thought) => {
+        if (!thought) {
+          res.status(404).json({ message: 'Thought not found.' });
+          return;
+        }
 
-      const reactionIndex = thought.reactions.findIndex(
-        (reaction) => reaction._id.toString() === reactionId
-      );
+        const reactionIndex = thought.reactions.findIndex(
+          (reaction) => reaction._id.toString() === reactionId
+        );
 
-      if (reactionIndex === -1) {
-        res.status(404).json({ message: 'Reaction not found in thought.' });
-        return;
-      }
+        if (reactionIndex === -1) {
+          res.status(404).json({ message: 'Reaction not found in thought.' });
+          return;
+        }
 
-      thought.reactions.splice(reactionIndex, 1);
+        thought.reactions.splice(reactionIndex, 1);
 
-      return thought.save();
-    })
-    .then((updatedThought) => {
-      res.json(updatedThought);
-    })
-    .catch((err) => {
-      console.log(err);
-      res.status(400).json(err);
-    });
-},
+        return thought.save();
+      })
+      .then((updatedThought) => {
+        res.json(updatedThought);
+      })
+      .catch((err) => {
+        console.log(err);
+        res.status(400).json(err);
+      });
+  },
 };
 
 module.exports = thoughtController;

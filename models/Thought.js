@@ -8,13 +8,12 @@ const reactionSchema = new Schema({
         type: Schema.Types.ObjectId,
         default: () => new Types.ObjectId(),
     },
-    reactionBody: {
-        type: Date,
-        default: Date.now,
-        get: (createdAt) => {
-            return new Date(createdAt).toISOString();
-        },
-    },
+        reactionBody: {
+            type: String,      
+            required: true,     
+            minlength: 1,       
+            maxlength: 280,     
+          },
     username: [
         {
             type: String,
